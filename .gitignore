@@ -1,9 +1,0 @@
-venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-*.db
-server/tests/test_travel_agency.db
-.env
-.idea/
-.vscode/

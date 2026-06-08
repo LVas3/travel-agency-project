@@ -43,6 +43,29 @@ class TravelAgencyApp(tk.Tk):
         except requests.exceptions.RequestException as exc:
             messagebox.showerror("Ошибка", str(exc))
         return None
+    def show_api_error(self, response, title="Ошибка"):
+        try:
+            data = response.json()
+            detail = data.get("detail", response.text)
+
+            if isinstance(detail, list):
+                errors = []
+
+                for err in detail:
+                    field = " → ".join(str(x) for x in err.get("loc", []))
+                    msg = err.get("msg", "")
+
+                    if msg.startswith("Value error, "):
+                        msg = msg.replace("Value error, ", "")
+
+                    errors.append(f"{field}: {msg}")
+
+                detail = "\n".join(errors)
+
+            messagebox.showerror(title, str(detail))
+
+        except Exception:
+            messagebox.showerror(title, response.text)
 
     def clear_window(self):
         for widget in self.winfo_children():
@@ -143,33 +166,45 @@ class TravelAgencyApp(tk.Tk):
             "email": self.reg_entries["Email"].get().strip(),
             "passport_number": self.reg_entries["Паспорт"].get().strip(),
         }
+
         if not all(data.values()):
             messagebox.showwarning("Проверка", "Заполните все поля")
             return
+
         response = self.api("POST", "/auth/register-client", json=data)
-        if response and response.status_code == 200:
+
+        if response is not None and response.status_code == 200:
             messagebox.showinfo("Готово", "Клиент зарегистрирован. Теперь можно войти.")
             self.show_login_window()
-        elif response:
-            messagebox.showerror("Ошибка", response.json().get("detail", response.text))
+
+        elif response is not None:
+            self.show_api_error(response, "Ошибка регистрации")
 
     def login(self):
-        data = {"login": self.login_entry.get().strip(), "password": self.password_entry.get().strip()}
+        data = {
+            "login": self.login_entry.get().strip(),
+            "password": self.password_entry.get().strip()
+        }
+
         if not data["login"] or not data["password"]:
             messagebox.showwarning("Проверка", "Введите логин и пароль")
             return
+
         response = self.api("POST", "/auth/login", json=data)
-        if response and response.status_code == 200:
+
+        if response is not None and response.status_code == 200:
             result = response.json()
             self.user_role = result["role"]
             self.user_id = result["user_id"]
             self.client_id = result.get("client_id")
+
             if self.user_role == "admin":
                 self.show_admin_window()
             else:
                 self.show_client_window()
-        elif response:
-            messagebox.showerror("Ошибка", "Неверный логин или пароль")
+
+        elif response is not None:
+            self.show_api_error(response, "Ошибка входа")
 
     # ---------- ADMIN ----------
     def show_admin_window(self):
