@@ -1,0 +1,5 @@
+Команда проверки:
+python -m pytest -q
+
+Результат:
+8 passed in 3.71s
